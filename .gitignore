@@ -1,0 +1,17 @@
+﻿# System files
+.DS_Store
+Thumbs.db
+*.log
+
+# Configuration
+config/database.local.php
+
+# Logs
+logs/*
+
+# IDE
+.vscode/
+.idea/
+
+# Temporary files
+*.tmp
