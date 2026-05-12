@@ -1,4 +1,9 @@
 <?php
+// Si on est en export PDF, ne rien afficher (pour éviter l'erreur FPDF)
+if (isset($_GET['export']) && $_GET['export'] == 'pdf') {
+    return;
+}
+
 $current_page = basename($_SERVER['PHP_SELF']);
 $user = getCurrentUser();
 $user_name = $user['name'] ?? 'User';

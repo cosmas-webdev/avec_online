@@ -12,6 +12,18 @@
 require_once 'includes/auth.php';
 requireLogin();
 
+// Handle refresh action (avant d'inclure header.php)
+if (isset($_GET['refresh'])) {
+    header('Location: dashboard.php');
+    exit();
+}
+
+// Handle export report action (avant d'inclure header.php)
+if (isset($_GET['export'])) {
+    header('Location: reports.php?export=pdf');
+    exit();
+}
+
 $page_title = __('dashboard');
 include 'includes/header.php';
 
@@ -28,20 +40,6 @@ $stats = [
 // Get current user
 $user = getCurrentUser();
 $display_name = $user['name'] ?? 'User';
-
-// Handle refresh action
-if (isset($_GET['refresh'])) {
-    // Simply reload the page
-    header('Location: dashboard.php');
-    exit();
-}
-
-// Handle export report action
-if (isset($_GET['export'])) {
-    // Redirect to reports page with export parameter
-    header('Location: reports.php?export=pdf');
-    exit();
-}
 ?>
 
 <!-- Page Content -->
@@ -62,12 +60,12 @@ if (isset($_GET['export'])) {
                     </p>
                 </div>
                 <div class="mt-4 md:mt-0 flex space-x-3">
-                    <a href="dashboard.php?refresh=1" class="bg-white/20 backdrop-blur-sm text-white px-4 py-2 rounded-lg hover:bg-white/30 transition text-base">
+                    <button class="bg-white/20 backdrop-blur-sm text-white px-4 py-2 rounded-lg hover:bg-white/30 transition text-base">
                         <i class="fas fa-redo-alt mr-2"></i> Refresh
-                    </a>
-                    <a href="dashboard.php?export=1" class="bg-white text-indigo-600 px-4 py-2 rounded-lg hover:bg-indigo-50 transition font-semibold text-base">
+                    </button>
+                    <button class="bg-white text-indigo-600 px-4 py-2 rounded-lg hover:bg-indigo-50 transition font-semibold text-base">
                         <i class="fas fa-download mr-2"></i> Export Report
-                    </a>
+                    </button>
                 </div>
             </div>
             <div class="mt-3 text-indigo-200 text-sm flex items-center">

@@ -23,7 +23,7 @@ $member_id = $_GET['member_id'] ?? '';
 // LOAD QR CODE LIBRARY
 // ============================================
 
-$qr_code_path = dirname(__DIR__) . '/phpqrcode/qrlib.php';
+$qr_code_path = __DIR__ . '/phpqrcode/qrlib.php';
 if (file_exists($qr_code_path)) {
     require_once $qr_code_path;
     $qr_enabled = true;
@@ -35,7 +35,7 @@ if (file_exists($qr_code_path)) {
 // LOAD FPDF LIBRARY
 // ============================================
 
-$pdf_path = dirname(__DIR__) . '/fpdf/fpdf.php';
+$pdf_path = __DIR__ . '/fpdf/fpdf.php';
 if (file_exists($pdf_path)) {
     require_once $pdf_path;
     $pdf_enabled = true;
@@ -83,14 +83,19 @@ function generateQRCode($data, $size = 150) {
     global $qr_enabled;
     
     if (!$qr_enabled) {
-        return '<div class="text-red-500 text-sm">QR Code library not found. Please install phpqrcode.</div>';
+        return '';
+    }
+    
+    // Vérifier si GD est activé
+    if (!extension_loaded('gd')) {
+        return '';
     }
     
     // Créer un fichier temporaire
-    $temp_file = dirname(__DIR__) . '/assets/temp/qr_' . md5($data) . '.png';
+    $temp_file = __DIR__ . '/assets/temp/qr_' . md5($data) . '.png';
     
     // Vérifier si le dossier temp existe
-    $temp_dir = dirname(__DIR__) . '/assets/temp';
+    $temp_dir = __DIR__ . '/assets/temp';
     if (!is_dir($temp_dir)) {
         mkdir($temp_dir, 0755, true);
     }
@@ -204,6 +209,11 @@ function getReportData($db, $report_type, $date_from, $date_to, $member_id = '')
 // ============================================
 
 if ($export == 'pdf') {
+    // Nettoyer le buffer de sortie avant de générer le PDF
+    while (ob_get_level() > 0) {
+        ob_end_clean();
+    }
+    
     // PDF Export using FPDF
     if (!$pdf_enabled) {
         die('FPDF library not found. Please install fpdf in the root directory.');
@@ -381,7 +391,7 @@ if ($export == 'pdf') {
             <div>
                 <h3 class="text-lg font-semibold text-gray-800"><?php echo $reports[$report_type]; ?></h3>
             </div>
-            <?php if ($qr_enabled): ?>
+            <?php if ($qr_enabled && extension_loaded('gd')): ?>
             <div>
                 <?php
                 $qr_data = APP_URL . '/reports.php?report=' . $report_type . '&date_from=' . $date_from . '&date_to=' . $date_to;
@@ -462,6 +472,47 @@ if ($export == 'pdf') {
                                 <td><?php echo escape($saving['account_number']); ?></td>
                                 <td><?php echo escape($saving['last_name'] . ' ' . $saving['first_name']); ?></td>
                                 <td><?php echo formatMoney($saving['balance']); ?></td>
+                            </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            <?php elseif ($report_type == 'members'): ?>
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">N°</th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Member</th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Phone</th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Group</th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Joined</th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            <?php
+                            $members = $db->query("
+                                SELECT m.id, m.first_name, m.last_name, u.email, m.phone, 
+                                       m.address, g.name as group_name, m.joined_date, m.status
+                                FROM members m
+                                LEFT JOIN groups g ON m.group_id = g.id
+                                LEFT JOIN users u ON m.user_id = u.id
+                                WHERE m.status = 'active'
+                                ORDER BY m.joined_date DESC
+                            ")->fetchAll();
+                            
+                            foreach ($members as $member):
+                            ?>
+                            <tr>
+                                <td><?php echo escape($member['id']); ?></td>
+                                <td><?php echo escape($member['last_name'] . ' ' . $member['first_name']); ?></td>
+                                <td><?php echo escape($member['email'] ?? '—'); ?></td>
+                                <td><?php echo escape($member['phone'] ?? '—'); ?></td>
+                                <td><?php echo escape($member['group_name'] ?? '—'); ?></td>
+                                <td><?php echo formatDate($member['joined_date']); ?></td>
+                                <td><?php echo getStatusBadge($member['status']); ?></td>
                             </tr>
                             <?php endforeach; ?>
                         </tbody>
